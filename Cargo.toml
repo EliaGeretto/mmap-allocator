@@ -1,0 +1,9 @@
+[package]
+name = "mmap-allocator"
+version = "0.1.0"
+authors = ["Elia Geretto <elia.f.geretto@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+nix = "0.21.0"
+page_size = "0.4.2"
