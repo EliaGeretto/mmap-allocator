@@ -10,7 +10,8 @@ use std::{
     ptr::{self, NonNull},
 };
 
-struct MMapAllocator;
+#[derive(Clone, Copy, Default, Debug)]
+pub struct MMapAllocator;
 
 unsafe impl Allocator for MMapAllocator {
     fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
