@@ -3,6 +3,10 @@ name = "mmap-allocator"
 version = "0.1.0"
 authors = ["Elia Geretto <elia.f.geretto@gmail.com>"]
 edition = "2018"
+description = "An `mmap`-based allocator for *nix systems"
+categories = ["memory-management"]
+repository = "https://github.com/EliaGeretto/mmap-allocator"
+license = "MIT"
 
 [dependencies]
 nix = "0.21.0"
