@@ -8,6 +8,10 @@ categories = ["memory-management"]
 repository = "https://github.com/EliaGeretto/mmap-allocator"
 license = "MIT"
 
+[features]
+default = ["std"]
+std = ["libc/std"]
+
 [dependencies]
-nix = "0.21.0"
+libc = { version = "0.2.97", default-features = false }
 page_size = "0.4.2"

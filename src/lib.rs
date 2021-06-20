@@ -1,10 +1,9 @@
 #![feature(allocator_api)]
 #![feature(nonnull_slice_from_raw_parts)]
 #![feature(slice_ptr_get)]
+#![no_std]
 
-use nix::sys::mman;
-
-use std::{
+use core::{
     alloc::{AllocError, Allocator, Layout},
     ffi::c_void,
     ptr::{self, NonNull},
@@ -23,21 +22,22 @@ unsafe impl Allocator for MMapAllocator {
         let layout = layout.align_to(page_size::get()).map_err(|_| AllocError)?;
 
         let new_mapping = unsafe {
-            mman::mmap(
+            libc::mmap(
                 ptr::null_mut(),
                 layout.size(),
-                mman::ProtFlags::PROT_READ | mman::ProtFlags::PROT_WRITE,
-                mman::MapFlags::MAP_PRIVATE | mman::MapFlags::MAP_ANON,
+                libc::PROT_READ | libc::PROT_WRITE,
+                libc::MAP_PRIVATE | libc::MAP_ANON,
                 -1,
                 0,
             )
-            .map_err(|_| AllocError)?
-            .cast::<u8>()
         };
+        if new_mapping == libc::MAP_FAILED {
+            return Err(AllocError);
+        }
 
         // SAFETY: `mmap` is guaranteed to return a valid pointer if it
         // succeeds.
-        let new_mapping = unsafe { NonNull::new_unchecked(new_mapping) };
+        let new_mapping = unsafe { NonNull::new_unchecked(new_mapping.cast::<u8>()) };
 
         Ok(NonNull::slice_from_raw_parts(
             new_mapping,
@@ -51,7 +51,10 @@ unsafe impl Allocator for MMapAllocator {
         //
         // `layout.size()` fits the current memory block, so it always falls in
         // the last page of the current mapping.
-        mman::munmap(ptr.as_ptr().cast::<c_void>(), layout.size()).expect("munmap failed");
+        let res = libc::munmap(ptr.as_ptr().cast::<c_void>(), layout.size());
+        if res == -1 {
+            panic!("munmap failed");
+        }
     }
 
     fn allocate_zeroed(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
@@ -149,8 +152,10 @@ unsafe impl Allocator for MMapAllocator {
         let truncated_area_size = old_layout.pad_to_align().size() - retained_area_size;
 
         if truncated_area_size > 0 {
-            mman::munmap(truncated_area_ptr.cast::<c_void>(), truncated_area_size)
-                .expect("`munmap` failed");
+            let res = libc::munmap(truncated_area_ptr.cast::<c_void>(), truncated_area_size);
+            if res == -1 {
+                panic!("munmap failed");
+            }
         }
 
         Ok(NonNull::slice_from_raw_parts(ptr, retained_area_size))
